@@ -79,6 +79,7 @@ async function addKey(input) {
   const k={id:randomBytes(8).toString('hex'),secret,fingerprint:fp,label:safeString(input.label,120)||`Bob ${store.keys.length+1}`,enabled:true,status:'checking',bobcoins:null,usedBobcoins:0,remainingBobcoins:null,plan:'',account:'',resetAt:null,lastCheckedAt:null,lastError:null,inFlight:false,createdAt:new Date().toISOString()}; store.keys.push(k); await persist(); emit('keys',snapshot()); await check(k); await persist(); emit('keys',snapshot()); return k;
 }
 async function proxy(req,res,url) {
+  const requestBody=['GET','HEAD'].includes(req.method)?undefined:await body(req);
   const tried=new Set();
   for (let attempt=0; attempt<store.keys.length+1; attempt++) {
     const candidates=store.keys.filter(k=>k.enabled && !k.inFlight && k.status!=='invalid' && (k.remainingBobcoins===null || k.remainingBobcoins>0) && !tried.has(k.id)).sort((a,b)=>a.createdAt.localeCompare(b.createdAt));
@@ -88,7 +89,7 @@ async function proxy(req,res,url) {
     try {
       const target=new URL(url.pathname.replace(/^\/proxy/, '')+url.search,UPSTREAM+'/');
       const headers=new Headers(req.headers); headers.delete('host'); headers.set('authorization',authHeader(key.secret));
-      const init={method:req.method,headers}; if(!['GET','HEAD'].includes(req.method)) init.body=req;
+      const init={method:req.method,headers}; if(requestBody!==undefined) init.body=requestBody;
       const upstream=await fetch(target,init);
       if([401,402,403,429].includes(upstream.status)){ key.status=(upstream.status===402||upstream.status===429)?'depleted':'invalid'; key.lastError=`upstream HTTP ${upstream.status}`; key.remainingBobcoins=(upstream.status===402||upstream.status===429)?0:key.remainingBobcoins; key.inFlight=false; await check(key); await persist(); emit('keys',snapshot()); continue; }
       res.writeHead(upstream.status,Object.fromEntries(upstream.headers));
