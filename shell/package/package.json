@@ -1,0 +1,28 @@
+{
+  "name": "bobshell",
+  "version": "2.0.4",
+  "type": "module",
+  "main": "./dist/bob.js",
+  "exports": {
+    ".": "./dist/bob.js"
+  },
+  "bin": {
+    "bob": "dist/bob.js"
+  },
+  "files": [
+    "dist/",
+    "ACP.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {},
+  "optionalDependencies": {
+    "@lydell/node-pty": "1.1.0",
+    "@officecli/officecli": "1.0.144",
+    "@vscode/ripgrep": "^1.17.1"
+  },
+  "releaseTag": "release",
+  "releaseCommit": "01dddf68472ba478a915ead0c13a348d30257fbb",
+  "releaseDate": "2026-09-16T14:34:21Z"
+}
