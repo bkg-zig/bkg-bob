@@ -149,6 +149,8 @@ function readBobShellSettings(): BobShellSettings | undefined {
 }
 
 function providerBaseUrl(): string {
+	const proxy = env("BKG_BOB_PROXY_URL");
+	if (proxy) return proxy.replace(/\/+$/, "");
 	return env("IBM_BOB_BASE_URL") ?? DEFAULT_BASE_URL;
 }
 
