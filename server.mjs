@@ -81,7 +81,7 @@ async function addKey(input) {
 async function proxy(req,res,url) {
   const tried=new Set();
   for (let attempt=0; attempt<store.keys.length+1; attempt++) {
-    const candidates=store.keys.filter(k=>k.enabled && !k.inFlight && k.status!=='invalid' && (k.remainingBobcoins===null || k.remainingBobcoins>0) && !tried.has(k.id)).sort((a,b)=>(a.remainingBobcoins??Infinity)-(b.remainingBobcoins??Infinity));
+    const candidates=store.keys.filter(k=>k.enabled && !k.inFlight && k.status!=='invalid' && (k.remainingBobcoins===null || k.remainingBobcoins>0) && !tried.has(k.id)).sort((a,b)=>a.createdAt.localeCompare(b.createdAt));
     const key=candidates[0];
     if(!key){ json(res,503,{error:'No Bob key with available Bobcoins'}); return; }
     tried.add(key.id); key.inFlight=true; emit('keys',snapshot());
@@ -90,7 +90,7 @@ async function proxy(req,res,url) {
       const headers=new Headers(req.headers); headers.delete('host'); headers.set('authorization',authHeader(key.secret));
       const init={method:req.method,headers}; if(!['GET','HEAD'].includes(req.method)) init.body=req;
       const upstream=await fetch(target,init);
-      if([401,403,429].includes(upstream.status)){ key.status=upstream.status===429?'depleted':'invalid'; key.lastError=`upstream HTTP ${upstream.status}`; key.remainingBobcoins=upstream.status===429?0:key.remainingBobcoins; key.inFlight=false; await check(key); await persist(); emit('keys',snapshot()); continue; }
+      if([401,402,403,429].includes(upstream.status)){ key.status=(upstream.status===402||upstream.status===429)?'depleted':'invalid'; key.lastError=`upstream HTTP ${upstream.status}`; key.remainingBobcoins=(upstream.status===402||upstream.status===429)?0:key.remainingBobcoins; key.inFlight=false; await check(key); await persist(); emit('keys',snapshot()); continue; }
       res.writeHead(upstream.status,Object.fromEntries(upstream.headers));
       if(upstream.body) for await (const chunk of upstream.body) res.write(chunk); res.end();
       key.inFlight=false; await check(key); await persist(); emit('keys',snapshot()); return;
